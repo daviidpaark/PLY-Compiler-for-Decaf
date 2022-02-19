@@ -42,11 +42,12 @@ tokens = (
     "LBRACE",
     "RBRACE",
     "SEMICOLON",
-    "INTEGER",
+    "INT_CONST",
     "FLOAT_CONST",
-    "STRING",
+    "STRING_CONST",
     "ID",
     "DOT",
+    "COMMA",
     "EQUALS",
     "AND",
     "OR",
@@ -69,10 +70,11 @@ t_TIMES = r"\*"
 t_DIVIDE = r"/"
 t_LPAREN = r"\("
 t_RPAREN = r"\)"
-t_LBRACE = r"{"
-t_RBRACE = r"}"
+t_LBRACE = r"\{"
+t_RBRACE = r"\}"
 t_SEMICOLON = r";"
 t_DOT = r"\."
+t_COMMA = r","
 t_EQUALS = r"="
 
 t_AND = r"&&"
@@ -110,25 +112,25 @@ def t_FLOAT_CONST(t):
     return t
 
 
-def t_INTEGER(t):
+def t_INT_CONST(t):
     r"\d+"
     t.value = int(t.value)
     return t
 
 
-def t_STRING(t):
+def t_STRING_CONST(t):
     r"\".*\" "
     return t
 
 
 def t_ID(t):
-    r"[a-zA-Z_][a-zA-Z_0-9]*"
+    r"[a-zA-Z][a-zA-Z_0-9]*"
     t.type = reserved.get(t.value, "ID")
     return t
 
 
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    print("Illegal character %s" % repr(t.value[0]))
     t.lexer.skip(1)
 
 
