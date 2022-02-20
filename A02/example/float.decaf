@@ -1,4 +1,0 @@
-public static void main() {
-	float v = 123.456;
-	Out.print(v);
-}

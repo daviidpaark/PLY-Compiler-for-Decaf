@@ -20,8 +20,6 @@ precedence = (
 )
 
 id = {
-    "Out" : "",
-	"In" : "",
     "print" : "",
     "scan_int" : "",
     "scan_float" : "",
@@ -43,7 +41,6 @@ def p_class_extends(p):
     "class_extends : CLASS class_name EXTENDS id LBRACE class_body_decl RBRACE"
     if p[4] not in id.keys():
         print("Can not extend undeclared class")
-        print(p[4])
 
 def p_class_name(p):
     "class_name  : ID"

@@ -27,6 +27,8 @@ reserved = {
     "true": "TRUE",
     "void": "VOID",
     "while": "WHILE",
+    "Out" : "OUT",
+    "In" : "IN",
 }
 
 

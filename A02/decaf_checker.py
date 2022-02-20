@@ -50,5 +50,5 @@ def main():
 
 
 if __name__ == "__main__":
-    just_scan()
-    #main()
+    #just_scan()
+    main()

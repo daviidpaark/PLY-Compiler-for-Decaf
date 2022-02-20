@@ -1,5 +1,10 @@
 Created by PLY (http://www.dabeaz.com/ply)
 
+Unused terminals:
+
+    IN
+    OUT
+
 Grammar
 
 Rule 0     S' -> program
@@ -144,6 +149,7 @@ GE                   : 92 114
 GT                   : 90 112
 ID                   : 8 102
 IF                   : 42 43
+IN                   : 
 INCREMENT            : 70 71
 INT                  : 29
 INT_CONST            : 96
@@ -157,6 +163,7 @@ NEW                  : 65 66
 NOT                  : 95 117
 NULL                 : 99
 OR                   : 86 108
+OUT                  : 
 PLUS                 : 81 93 103 115
 PRIVATE              : 24 26
 PUBLIC               : 23 25
