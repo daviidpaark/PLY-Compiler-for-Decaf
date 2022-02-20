@@ -9,7 +9,6 @@ reserved = {
     "break": "BREAK",
     "continue": "CONTINUE",
     "class": "CLASS",
-    "do": "DO",
     "else": "ELSE",
     "extends": "EXTENDS",
     "false": "FALSE",
@@ -32,7 +31,6 @@ reserved = {
 
 
 tokens = (
-    "NUMBER",
     "PLUS",
     "MINUS",
     "TIMES",

@@ -1,3 +1,7 @@
+# David Park
+# dappark
+# 109582425
+
 import sys
 import ply.lex as lex
 import ply.yacc as yacc
@@ -47,4 +51,4 @@ def main():
 
 if __name__ == "__main__":
     just_scan()
-    # main()
+    #main()
