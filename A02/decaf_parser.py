@@ -91,8 +91,7 @@ def p_block(p):
 
 def p_stmts(p):
 	"""stmts : stmt
-			 | stmt stmts
-			 | """
+			 | stmt stmts"""
 
 def p_stmt(p):
 	"""stmt : IF LPAREN expr RPAREN stmt
