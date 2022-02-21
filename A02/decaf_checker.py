@@ -15,7 +15,7 @@ def just_scan():
         sys.exit()
     import decaf_lexer
 
-    lexer = lex.lex(module=decaf_lexer, debug=1)
+    lexer = lex.lex(module=decaf_lexer, debug=0)
 
     fh = open(fn, "r")
     source = fh.read()
@@ -38,15 +38,15 @@ def main():
     import decaf_lexer
     import decaf_parser
 
-    lexer = lex.lex(module=decaf_lexer, debug=1)
-    parser = yacc.yacc(module=decaf_parser, debug=1)
+    lexer = lex.lex(module=decaf_lexer, debug=0)
+    parser = yacc.yacc(module=decaf_parser, debug=0)
 
     fh = open(fn, "r")
     source = fh.read()
     fh.close()
     parser.parse(source, lexer=lexer)
     # Parsing Successful
-    print("YES")
+    print("Yes")
 
 
 if __name__ == "__main__":

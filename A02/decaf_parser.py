@@ -19,35 +19,19 @@ precedence = (
     ("right", "NOT"),
 )
 
-id = {
-    "print" : "",
-    "scan_int" : "",
-    "scan_float" : "",
-}
+id = { }
+
+methods = { }
 
 def p_program(p):
-	"program : class_decl"
+	"""program : class_decl
+			   | """
 
 def p_class_decl(p):
-    """class_decl : class
-                  | class_extends
-                  | class class_decl
-                  | class_extends class_decl"""
-
-def p_class(p):
-    "class : CLASS class_name LBRACE class_body_decl RBRACE"
-
-def p_class_extends(p):
-    "class_extends : CLASS class_name EXTENDS id LBRACE class_body_decl RBRACE"
-    if p[4] not in id.keys():
-        print("Can not extend undeclared class")
-
-def p_class_name(p):
-    "class_name  : ID"
-    if p[1] not in id.keys():
-        id[p[1]] = ""
-    else:
-        print("Duplicate class declaration")
+    """class_decl : CLASS ID            LBRACE class_body_decl RBRACE
+                  | CLASS ID EXTENDS ID LBRACE class_body_decl RBRACE
+				  | CLASS ID            LBRACE class_body_decl RBRACE class_decl
+				  | CLASS ID EXTENDS ID LBRACE class_body_decl RBRACE class_decl"""
                   
 def p_class_body_decl(p):
 	"""class_body_decl : field_decl
@@ -58,41 +42,41 @@ def p_class_body_decl(p):
 					   | constructor_decl class_body_decl"""
 
 def p_field_decl(p):
-	"""field_decl : modifier var_decl
-				  | var_decl"""
+	"field_decl : modifier var_decl"
 
 def p_method_decl(p):
-    """method_decl : modifier type id LPAREN formals RPAREN block
-				   | modifier type id LPAREN         RPAREN block
-				   | modifier VOID id LPAREN formals RPAREN block
-				   | modifier VOID id LPAREN         RPAREN block"""
+	"""method_decl : modifier type ID LPAREN formals RPAREN block
+				   | modifier type ID LPAREN         RPAREN block
+				   | modifier VOID ID LPAREN formals RPAREN block
+				   | modifier VOID ID LPAREN         RPAREN block"""
 
 def p_constructor_decl(p):
-	"""constructor_decl : modifier id LPAREN formals RPAREN block
-						| modifier id LPAREN         RPAREN block"""
+	"""constructor_decl : modifier ID LPAREN formals RPAREN block
+						| modifier ID LPAREN         RPAREN block"""
 
 def p_modifier(p):
 	"""modifier : PUBLIC STATIC
 				| PRIVATE STATIC
 				| PUBLIC
 				| PRIVATE
-				| STATIC"""
+				| STATIC
+				| """
 
 def p_var_decl(p):
-	"var_decl : type variables"	   
+	"var_decl : type variables SEMICOLON"
 
 def p_type(p):
 	"""type : INT
 			| FLOAT
 			| BOOLEAN
-			| id"""	
+			| ID"""	
 			
 def p_variables(p):
 	"""variables : variable
 				 | variable COMMA variables"""
 
 def p_variable(p):
-	"variable : id"
+	"variable : ID"
 
 def p_formals(p):
 	"""formals : formal_param
@@ -107,13 +91,15 @@ def p_block(p):
 
 def p_stmts(p):
 	"""stmts : stmt
-			 | stmt COMMA stmts"""
+			 | stmt stmts
+			 | """
 
 def p_stmt(p):
 	"""stmt : IF LPAREN expr RPAREN stmt
 			| IF LPAREN expr RPAREN stmt ELSE stmt
 			| WHILE LPAREN expr RPAREN stmt
 			| FOR LPAREN stmt_expr SEMICOLON expr SEMICOLON stmt_expr RPAREN stmt
+			| FOR LPAREN           SEMICOLON      SEMICOLON           RPAREN stmt
 			| RETURN expr SEMICOLON
 			| RETURN SEMICOLON
 			| stmt_expr SEMICOLON
@@ -124,7 +110,7 @@ def p_stmt(p):
 			| SEMICOLON"""
 
 def p_stmt_expr(p):
-    """stmt_expr : assign
+	"""stmt_expr : assign
                  | method_invocation"""
 
 def p_expr(p):
@@ -135,12 +121,11 @@ def p_expr(p):
 			| unary_op expr"""
 
 def p_primary(p):
-    """primary : literal
+	"""primary : literal
 			   | THIS
 			   | SUPER
 			   | LPAREN expr RPAREN
-			   | NEW id LPAREN           RPAREN
-			   | NEW id LPAREN arguments RPAREN
+			   | NEW ID LPAREN arguments RPAREN
 			   | lhs
 			   | method_invocation"""
 
@@ -155,26 +140,26 @@ def p_lhs(p):
 	"lhs : field_access"
 	
 def p_field_access(p):
-	"""field_access : primary DOT id
-					| id"""
+	"""field_access : primary DOT ID
+					| ID"""
 
 def p_arguments(p):
 	"""arguments : expr
-				 | expr COMMA arguments """
+				 | expr COMMA arguments 
+				 | """
 
 def p_method_invocation(p):
-	"""method_invocation : field_access LPAREN           RPAREN
-						 | field_access LPAREN arguments RPAREN"""
+	"method_invocation : field_access LPAREN arguments RPAREN"
 
 def p_expr_arith_op(p):
-    """expr : expr PLUS expr
+	"""expr : expr PLUS expr
     		| expr MINUS expr
     		| expr TIMES expr
     		| expr DIVIDE expr"""
-    if   p[2] == "+" : p[0] = p[1] + p[3]
-    elif p[2] == "-" : p[0] = p[1] - p[3]
-    elif p[2] == "*" : p[0] = p[1] * p[3]
-    elif p[2] == "/" : p[0] = p[1] / p[3]
+	if   p[2] == "+" : p[0] = p[1] + p[3]
+	elif p[2] == "-" : p[0] = p[1] - p[3]
+	elif p[2] == "*" : p[0] = p[1] * p[3]
+	elif p[2] == "/" : p[0] = p[1] / p[3]
 
 def p_expr_bool_op(p):
 	"""expr : expr AND expr
@@ -189,8 +174,8 @@ def p_expr_bool_op(p):
 	elif p[2] == "||" : p[0] = p[1] or p[3]
 	elif p[2] == "==" : p[0] = p[1] == p[3]
 	elif p[2] == "!=" : p[0] = p[1] != p[3]
-	elif p[2] == "<"  : p[0] = p[1] < p[3]
-	elif p[2] == ">"  : p[0] = p[1] > p[3]
+	elif p[2] == "<" : p[0] = p[1] < p[3]
+	elif p[2] == ">" : p[0] = p[1] > p[3]
 	elif p[2] == "<=" : p[0] = p[1] <= p[3]
 	elif p[2] == ">=" : p[0] = p[1] >= p[3]
 
@@ -209,13 +194,6 @@ def p_literal(p):
 			   | NULL
 			   | TRUE
 			   | FALSE"""
-			   
-def p_id(p):
-    "id : ID"
-    if p[1] in id.keys():
-        id[p[1]] = ""
-    else:
-        p[0] = id.get(p[1])
 
 def p_arith_op(p):
 	"""arith_op : PLUS
@@ -239,6 +217,8 @@ def p_unary_op(p):
 				| NOT"""
 
 def p_error(p):
-    print("Syntax error in input:",p)
+	print("Syntax error in input: %s [%d,%d]" % (repr(p.value), p.lineno, p.lexpos))
+	import sys
+	sys.exit()
 
 parser = yacc.yacc()

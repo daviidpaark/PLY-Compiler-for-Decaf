@@ -27,8 +27,6 @@ reserved = {
     "true": "TRUE",
     "void": "VOID",
     "while": "WHILE",
-    "Out" : "OUT",
-    "In" : "IN",
 }
 
 
@@ -97,7 +95,7 @@ def t_newline(t):
 
 
 def t_COMMENTBLOCK(t):
-    r"\/\*(.|\n)*\*\/"
+    r"\/\*(.|\n)*?\*\/"
     t.lexer.lineno += t.value.count("\n")
 
 
