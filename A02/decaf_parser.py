@@ -115,9 +115,9 @@ def p_stmt_expr(p):
 def p_expr(p):
 	"""expr : primary
 			| assign
-			| expr arith_op expr
-			| expr bool_op expr
-			| unary_op expr"""
+			| expr_arith_op
+			| expr_bool_op
+			| expr_unary_op"""
 
 def p_primary(p):
 	"""primary : literal
@@ -151,40 +151,30 @@ def p_method_invocation(p):
 	"method_invocation : field_access LPAREN arguments RPAREN"
 
 def p_expr_arith_op(p):
-	"""expr : expr PLUS expr
-    		| expr MINUS expr
-    		| expr TIMES expr
-    		| expr DIVIDE expr"""
-	if   p[2] == "+" : p[0] = p[1] + p[3]
-	elif p[2] == "-" : p[0] = p[1] - p[3]
-	elif p[2] == "*" : p[0] = p[1] * p[3]
-	elif p[2] == "/" : p[0] = p[1] / p[3]
+	"expr_arith_op : expr arith_op expr"
+	# if   p[2] == "+" : p[0] = p[1] + p[3]
+	# elif p[2] == "-" : p[0] = p[1] - p[3]
+	# elif p[2] == "*" : p[0] = p[1] * p[3]
+	# elif p[2] == "/" : p[0] = p[1] / p[3]
 
 def p_expr_bool_op(p):
-	"""expr : expr AND expr
-			| expr OR expr
-			| expr EQ expr
-			| expr NE expr
-			| expr LT expr
-			| expr GT expr
-			| expr LE expr
-			| expr GE expr"""
-	if   p[2] == "&&" : p[0] = p[1] and p[3]
-	elif p[2] == "||" : p[0] = p[1] or p[3]
-	elif p[2] == "==" : p[0] = p[1] == p[3]
-	elif p[2] == "!=" : p[0] = p[1] != p[3]
-	elif p[2] == "<" : p[0] = p[1] < p[3]
-	elif p[2] == ">" : p[0] = p[1] > p[3]
-	elif p[2] == "<=" : p[0] = p[1] <= p[3]
-	elif p[2] == ">=" : p[0] = p[1] >= p[3]
+	"expr_bool_op : expr bool_op expr"
+	# if   p[2] == "&&" : p[0] = p[1] and p[3]
+	# elif p[2] == "||" : p[0] = p[1] or p[3]
+	# elif p[2] == "==" : p[0] = p[1] == p[3]
+	# elif p[2] == "!=" : p[0] = p[1] != p[3]
+	# elif p[2] == "<" : p[0] = p[1] < p[3]
+	# elif p[2] == ">" : p[0] = p[1] > p[3]
+	# elif p[2] == "<=" : p[0] = p[1] <= p[3]
+	# elif p[2] == ">=" : p[0] = p[1] >= p[3]
 
 def p_expr_unary_op(p):
-	"""expr : PLUS expr %prec UPLUS
-			| MINUS expr %prec UMINUS
-			| NOT expr"""
-	if   p[1] == "+" : p[0] = +p[2]
-	elif p[1] == "-" : p[0] = -p[2]
-	elif p[1] == "!" : p[0] = not p[2]
+	"""expr_unary_op : PLUS expr %prec UPLUS
+					 | MINUS expr %prec UMINUS
+					 | NOT expr"""
+	# if   p[1] == "+" : p[0] = +p[2]
+	# elif p[1] == "-" : p[0] = -p[2]
+	# elif p[1] == "!" : p[0] = not p[2]
 
 def p_literal(p):
 	"""literal : INT_CONST
@@ -209,11 +199,6 @@ def p_bool_op(p):
 			   | GT
 			   | LE
 			   | GE"""
-
-def p_unary_op(p):
-	"""unary_op : PLUS
-				| MINUS
-				| NOT"""
 
 def p_error(p):
 	print("Syntax error in input: %s [%d,%d]" % (repr(p.value), p.lineno, p.lexpos))
