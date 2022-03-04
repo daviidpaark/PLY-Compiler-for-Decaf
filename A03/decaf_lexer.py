@@ -2,7 +2,6 @@
 # dappark
 # 109582425
 
-import sys
 import ply.lex as lex
 
 reserved = {
@@ -130,6 +129,7 @@ def t_ID(t):
 
 def t_error(t):
     print("Illegal character: %s [%d,%d]" % (repr(t.value[0]), t.lineno, t.lexpos))
+    import sys
     sys.exit()
 
 
