@@ -12,6 +12,16 @@ class Class:
         self.methods = methods
 
 
+class Field:
+    def __init__(self, name, id, cclass, visibility, applicability, type):
+        self.name = name
+        self.id = id
+        self.cclass = cclass
+        self.visibility = visibility
+        self.applicability = applicability
+        self.type = type
+
+
 class Constructor:
     def __init__(self, id, visibility, parameters, variables, body):
         self.id = id
@@ -43,16 +53,6 @@ class Method:
         self.type = type
         self.variables = variables
         self.body = body
-
-
-class Field:
-    def __init__(self, name, id, cclass, visibility, applicability, type):
-        self.name = name
-        self.id = id
-        self.cclass = cclass
-        self.visibility = visibility
-        self.applicability = applicability
-        self.type = type
 
 
 class Variable:
@@ -131,7 +131,7 @@ class Constant:
         self.line = line
 
 
-class Variable:
+class VariableExpr:
     def __init__(self, id, line):
         self.id = id
         self.line = line
@@ -167,14 +167,14 @@ class Auto:
         self.line = line
 
 
-class Field:
+class FieldAccess:
     def __init__(self, base, field, line):
         self.base = base
         self.field = field
         self.line = line
 
 
-class Method:
+class MethodCall:
     def __init__(self, base, method, arguments, line):
         self.base = base
         self.method = method

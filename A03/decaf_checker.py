@@ -44,9 +44,9 @@ def main():
     fh = open(fn, "r")
     source = fh.read()
     fh.close()
-    parser.parse(source, lexer=lexer, debug=0)
+    ast = parser.parse(source, lexer=lexer, debug=0)
     # Parsing Successful
-    print("Yes")
+    print(ast)
 
 
 if __name__ == "__main__":
