@@ -20,13 +20,23 @@ precedence = (
     ("right", "NOT"),
 )
 
+classTable = []
 fieldID = 1
 methodID = 1
 constructorID = 1
 
 block = -1
-varTable = []
 varID = 1
+
+currentScope = Scope(None)
+classTable.append("In")
+classTable.append("Out")
+currentScope.addMethod(Method("scan_int", 0, "In", "public", "static", None, Type("int"), None, None))
+currentScope.addMethod(Method("scan_float", 0, "In", "public", "static", None, Type("float"), None, None))
+currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("int")), None, None, None))
+currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("float")), None, None, None))
+currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("boolean")), None, None, None))
+currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("string")), None, None, None))
 
 def p_program(p):
     """program : class_decl
@@ -35,7 +45,7 @@ def p_program(p):
         p[0] = AST(flatten(p[1]))
     except:
         pass
-
+        
 def p_class_decl(p):
     "class_decl : CLASS ID superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl"
     fields = []
@@ -54,6 +64,11 @@ def p_class_decl(p):
         p[0] = [Class(p[2], p[3], fields, methods, constructors), p[9]]
     except:
         p[0] = [Class(p[2], p[3], fields, methods, constructors)]
+    if classTable.__contains__(p[2]):
+        print("Duplicate class name: %s" % p[2])
+        import sys
+        sys.exit()
+    classTable.append(p[2])
 
 def p_next_class_decl(p):
     """next_class_decl : CLASS ID superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl
@@ -75,6 +90,11 @@ def p_next_class_decl(p):
             p[0] = [Class(p[2], p[3], fields, methods, constructors), p[9]]
         except:
             p[0] = [Class(p[2], p[3], fields, methods, constructors)]
+        if classTable.__contains__(p[2]):
+            print("Duplicate class name: %s" % p[2])
+            import sys
+            sys.exit()
+        classTable.append(p[2])
     except:
         pass
 
@@ -115,20 +135,23 @@ def p_field_decl(p):
                 fields.append(Field(var, fieldID, None, "private", "instance", p[2][0]))
         fieldID += 1
     p[0] = fields
+    for field in fields:
+        currentScope.addField(field)
 
 def p_method_decl(p):
     """method_decl : modifier type ID LPAREN formal_param RPAREN block
                    | modifier VOID ID LPAREN formal_param RPAREN block"""
     variables = []
     try:
-        for param in p[5]:
-            variables.append(param)
-        for stmt in p[7].statements:
+        if p[5]:
+            for param in filter(None, p[5]):
+                variables.append(param)
+        for stmt in filter(None, (p[7].statements)):
             if isinstance(stmt, Variable):
                 variables.append(stmt)
-                p[7].statements.remove(stmt)
     except:
         pass
+    p[7].statements = [stmt for stmt in p[7].statements if not isinstance(stmt, Variable)]
     variables = flatten(variables)
     global methodID
     if p[2] == "void":
@@ -150,14 +173,16 @@ def p_constructor_decl(p):
     "constructor_decl : modifier ID LPAREN formal_param RPAREN block"
     variables = []
     try:
-        for param in p[4]:
-            variables.append(param)
-        for stmt in p[6].statements:
+        if p[4]:
+            for param in filter(None, p[4]):
+                variables.append(param)
+        for stmt in filter(None, (p[6].statements)):
             if isinstance(stmt, Variable):
                 variables.append(stmt)
                 p[6].statements.remove(stmt)
     except:
         pass
+    p[6].statements = [stmt for stmt in p[6].statements if not isinstance(stmt, Variable)]
     variables = flatten(variables)
     global constructorID
     if "public" in p[1]:
@@ -244,7 +269,7 @@ def p_param(p):
     "param : type variable"
     global varID
     p[0] = Variable(p[2], varID, "formal", p[1])
-    varTable[block][p[2]] = p[0]
+    currentScope.add(p[0])
     varID += 1
 
 def p_block(p):
@@ -320,7 +345,7 @@ def p_var_decl_stmt(p):
     for var in p[1][1]:
         variable = Variable(var, varID, "local", p[1][0])
         vars.append(variable)
-        varTable[block][var] = variable
+        currentScope.add(variable)
         varID += 1
     p[0] = vars
 
@@ -359,7 +384,7 @@ def p_primary(p):
                | SUPER
                | grouped_expr
                | new_object
-               | lhs
+               | field_access
                | method_invocation"""
     if p[1] == "this":
         p[0] = This(p.lineno)
@@ -386,7 +411,7 @@ def p_new_object(p):
     p[0] = Object(p[2], flatten(p[4]), p.lineno)
 
 def p_assign(p):
-    """assign : lhs EQUALS expr
+    """assign : field_access EQUALS expr
               | auto_expr_post
               | auto_expr_pre"""
     try: 
@@ -395,26 +420,39 @@ def p_assign(p):
         p[0] = p[1]
 
 def p_auto_expr_post(p):
-    """auto_expr_post : lhs INCREMENT
-                      | lhs DECREMENT"""
+    """auto_expr_post : field_access INCREMENT
+                      | field_access DECREMENT"""
     p[0] = Auto(p[2], p[1], "post", p.lineno)
 
 def p_auto_expr_pre(p):
-    """auto_expr_pre : INCREMENT lhs
-                     | DECREMENT lhs"""
+    """auto_expr_pre : INCREMENT field_access
+                     | DECREMENT field_access"""
     p[0] = Auto(p[1], p[2], "pre", p.lineno)
 
-def p_lhs(p):
-    "lhs : field_access"
-    p[0] = p[1]
-
 def p_field_access(p):
-    """field_access : primary DOT ID
-                    | ID"""
-    try:
-        p[0] = FieldAccess(p[1], p[3], p.lineno)
-    except:
-        p[0] = VariableExpr(varTable[block][p[1]].id, p.lineno)
+    """field_access : explicit_field
+                    | implicit_access"""
+    p[0] = p[1]
+    
+def p_explicit_field(p):
+    "explicit_field : primary DOT ID"
+    if isinstance(p[1],This) and not currentScope.getField(p[3]):
+        print("Invalid/undeclared field access: %s" % p[3])
+        import sys
+        sys.exit()
+    p[0] = FieldAccess(p[1], p[3], p.lineno)
+
+def p_implicit_access(p):
+    "implicit_access : ID"    
+    variable = currentScope.get(p[1])
+    if variable:
+        p[0] = VariableExpr(variable.id, p.lineno)
+    elif p[1] in classTable:
+        p[0] = p[1]
+    else:
+        print("Error accessing undeclared/implicit variable: %s" % p[1])
+        import sys
+        sys.exit()
 
 def p_arguments(p):
     """arguments : expr additional_arguments
@@ -493,12 +531,15 @@ def p_new_block(p):
     "new_block : "
     global block
     block += 1
-    global varID
-    varID = 1
-    varTable.append({})
+    global currentScope
+    currentScope = Scope(currentScope)
 
 def p_exit_block(p):
     "exit_block : "
+    global currentScope
+    currentScope = currentScope.parent
+    global varID
+    varID = 1
 
 def p_error(p):
     print("Syntax error in input: %s [%d,%d]" % (repr(p.value), p.lineno, p.lexpos))

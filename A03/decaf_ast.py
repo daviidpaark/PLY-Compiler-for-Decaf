@@ -116,9 +116,11 @@ class Method:
         print("Method Body: ")
         print("Block([")
         stmts = []
-        for stmt in self.body.statements:
-            stmts.append(stmt.tree())
-
+        try:
+            for stmt in self.body.statements:
+                stmts.append(stmt.tree())
+        except:
+            pass
         if stmts:
             print(", \n".join(filter(None, stmts)))
         print("])")
@@ -192,7 +194,7 @@ class If:
         self.line = line
 
     def tree(self):
-        return "If( %s, %s, %s )" % (
+        return "If( %s,\n%s,\n%s )" % (
             self.condition.tree(),
             self.then.tree(),
             self.elsee.tree(),
@@ -212,7 +214,10 @@ class While:
                 stmts.append(stmt.tree())
         except:
             pass
-        return "While( %s, %s )" % (self.condition.tree(), stmts)
+        return "While( %s,\n%s )" % (
+            self.condition.tree(),
+            ",\n".join(filter(None, stmts)),
+        )
 
 
 class For:
@@ -230,11 +235,11 @@ class For:
                 stmts.append(stmt.tree())
         except:
             pass
-        return "For( %s, %s, %s, %s )" % (
+        return "For( %s,\n%s,\n%s,\n%s )" % (
             self.initializer.tree(),
             self.condition.tree(),
             self.update.tree(),
-            stmts,
+            ",\n".join(filter(None, stmts)),
         )
 
 
@@ -414,6 +419,16 @@ class Object:
         self.arguments = arguments
         self.line = line
 
+    def tree(self):
+        args = []
+        try:
+            for arg in self.arguments:
+                args.append(arg.tree())
+            args = ", ".join(args)
+        except:
+            args = ""
+        return "New-object(%s, [%s])" % (self.base, args)
+
 
 class This:
     def __init__(self, line):
@@ -427,8 +442,65 @@ class Super:
     def __init__(self, line):
         self.line = line
 
+    def tree(self):
+        return "Super"
+
 
 class Reference:
     def __init__(self, name, line):
         self.name = name
         self.line = line
+
+    def tree(self):
+        return "Class-reference(%s)" % self.name
+
+
+class Scope:
+    def __init__(self, parent):
+        self.varTable = {}
+        self.fieldTable = {}
+        self.methodTable = {}
+        self.constructorTable = {}
+        self.parent = parent
+
+    def add(self, variable):
+        if self.varTable.__contains__(variable.name):
+            return False
+        self.varTable[variable.name] = variable
+        return True
+
+    def get(self, name):
+        if self.varTable.__contains__(name):
+            return self.varTable[name]
+        elif self.parent:
+            return self.parent.get(name)
+        return None
+
+    def addField(self, field):
+        if self.fieldTable.__contains__(field.name):
+            return False
+        self.fieldTable[field.name] = field
+        return True
+
+    def getField(self, name):
+        if self.fieldTable.__contains__(name):
+            return self.fieldTable[name]
+        elif self.parent:
+            return self.parent.getField(name)
+        return None
+
+    def addMethod(self, method):
+        if self.methodTable.__contains__(method.name):
+            return False
+        self.methodTable[method.name] = method
+        return True
+
+    def getMethod(self, name):
+        if self.methodTable.__contains__(name):
+            return self.methodTable[name]
+        elif self.parent:
+            return self.parent.getMethod(name)
+        return None
+
+    def setClass(self, className):
+        self.className = className
