@@ -151,7 +151,10 @@ def p_method_decl(p):
                 variables.append(stmt)
     except:
         pass
-    p[7].statements = [stmt for stmt in p[7].statements if not isinstance(stmt, Variable)]
+    try:
+        p[7].statements = [stmt for stmt in p[7].statements if not isinstance(stmt, Variable)]
+    except:
+        pass
     variables = flatten(variables)
     global methodID
     if p[2] == "void":
@@ -182,7 +185,10 @@ def p_constructor_decl(p):
                 p[6].statements.remove(stmt)
     except:
         pass
-    p[6].statements = [stmt for stmt in p[6].statements if not isinstance(stmt, Variable)]
+    try:
+        p[6].statements = [stmt for stmt in p[6].statements if not isinstance(stmt, Variable)]
+    except:
+        pass
     variables = flatten(variables)
     global constructorID
     if "public" in p[1]:
@@ -274,7 +280,7 @@ def p_param(p):
 
 def p_block(p):
     "block : LBRACE new_block stmts exit_block RBRACE"
-    p[0] = Block(flatten(p[3]), p.lineno)
+    p[0] = Block(flatten(p[3]), p.lineno(3))
 
 def p_stmts(p):
     """stmts : stmt additional_stmts
@@ -310,11 +316,11 @@ def p_stmt(p):
             | var_decl_stmt
             | SEMICOLON"""
     if p[1] == "break":
-        p[0] = Break(p.lineno)
+        p[0] = Break(p.lineno(1))
     elif p[1] == "continue":
-        p[0] = Continue(p.lineno)
+        p[0] = Continue(p.lineno(1))
     elif p[1] == ";":
-        p[0] = Skip(p.lineno)
+        p[0] = Skip(p.lineno(1))
     else:
         p[0] = p[1]
         
@@ -322,21 +328,21 @@ def p_ifelse(p):
     """ifelse : IF LPAREN expr RPAREN stmt ELSE stmt
               | IF LPAREN expr RPAREN stmt"""
     try:
-        p[0] = If(p[3], p[5], p[7], p.lineno)
+        p[0] = If(p[3], p[5], p[7], p.lineno(3))
     except:
-        p[0] = If(p[3], p[5], Skip(p.lineno), p.lineno)
+        p[0] = If(p[3], p[5], Skip(p.lineno(3)), p.lineno(3))
 
 def p_while(p):
     "while : WHILE LPAREN expr RPAREN stmt"
-    p[0] = While(p[3], p[5], p.lineno)
+    p[0] = While(p[3], p[5], p.lineno(3))
 
 def p_for(p):
     "for : FOR LPAREN opt_stmt_expr SEMICOLON opt_expr SEMICOLON opt_stmt_expr RPAREN stmt"
-    p[0] = For(p[3], p[5], p[7], p[9], p.lineno)
+    p[0] = For(p[3], p[5], p[7], p[9], p.lineno(3))
 
 def p_return_stmt(p):
     "return_stmt : RETURN opt_expr SEMICOLON"
-    p[0] = Return(p[2], p.lineno)
+    p[0] = Return(p[2], p.lineno(2))
 
 def p_var_decl_stmt(p):
     "var_decl_stmt : var_decl"
@@ -355,7 +361,7 @@ def p_opt_stmt_expr(p):
     try:
         p[0] = p[1]
     except:
-        p[0] = Skip(p.lineno)
+        p[0] = Skip(p.lineno(1))
 
 def p_opt_expr(p):
     """opt_expr : expr
@@ -363,12 +369,12 @@ def p_opt_expr(p):
     try:
         p[0] = p[1]
     except:
-        p[0] = Skip(p.lineno)
+        p[0] = Skip(p.lineno(1))
 
 def p_stmt_expr(p):
     """stmt_expr : assign
                  | method_invocation"""
-    p[0] = Expr(p[1], p.lineno)
+    p[0] = Expr(p[1], p.lineno(1))
 
 def p_expr(p):
     """expr : primary
@@ -387,9 +393,9 @@ def p_primary(p):
                | field_access
                | method_invocation"""
     if p[1] == "this":
-        p[0] = This(p.lineno)
+        p[0] = This(p.lineno(1))
     elif p[1] == "super":
-        p[0] = Super(p.lineno)
+        p[0] = Super(p.lineno(1))
     else:
         p[0] = p[1]
 
@@ -400,7 +406,7 @@ def p_literal(p):
                | NULL
                | TRUE
                | FALSE"""
-    p[0] = Constant(p[1], p.lineno)
+    p[0] = Constant(p[1], p.lineno(1))
 
 def p_grouped_expr(p):
     "grouped_expr : LPAREN expr RPAREN"
@@ -408,26 +414,26 @@ def p_grouped_expr(p):
 
 def p_new_object(p):
     "new_object : NEW ID LPAREN arguments RPAREN"
-    p[0] = Object(p[2], flatten(p[4]), p.lineno)
+    p[0] = Object(p[2], flatten(p[4]), p.lineno(2))
 
 def p_assign(p):
     """assign : field_access EQUALS expr
               | auto_expr_post
               | auto_expr_pre"""
     try: 
-        p[0] = Assign(p[1], p[3], p.lineno)
+        p[0] = Assign(p[1], p[3], p.lineno(1))
     except:
         p[0] = p[1]
 
 def p_auto_expr_post(p):
     """auto_expr_post : field_access INCREMENT
                       | field_access DECREMENT"""
-    p[0] = Auto(p[2], p[1], "post", p.lineno)
+    p[0] = Auto(p[2], p[1], "post", p.lineno(1))
 
 def p_auto_expr_pre(p):
     """auto_expr_pre : INCREMENT field_access
                      | DECREMENT field_access"""
-    p[0] = Auto(p[1], p[2], "pre", p.lineno)
+    p[0] = Auto(p[1], p[2], "pre", p.lineno(2))
 
 def p_field_access(p):
     """field_access : explicit_field
@@ -437,20 +443,20 @@ def p_field_access(p):
 def p_explicit_field(p):
     "explicit_field : primary DOT ID"
     if isinstance(p[1],This) and not currentScope.getField(p[3]):
-        print("Invalid/undeclared field access: %s" % p[3])
+        print("Invalid/undeclared field access: %s [%d,%d]" % (p[3], p.lineno(3), p.lexpos(3)))
         import sys
         sys.exit()
-    p[0] = FieldAccess(p[1], p[3], p.lineno)
+    p[0] = FieldAccess(p[1], p[3], p.lineno(3))
 
 def p_implicit_access(p):
     "implicit_access : ID"    
     variable = currentScope.get(p[1])
     if variable:
-        p[0] = VariableExpr(variable.id, p.lineno)
+        p[0] = VariableExpr(variable.id, p.lineno(1))
     elif p[1] in classTable:
         p[0] = p[1]
     else:
-        print("Error accessing undeclared/implicit variable: %s" % p[1])
+        print("Error accessing undeclared/implicit variable: %s [%d,%d]" % (p[1], p.lineno(1), p.lexpos(1)))
         import sys
         sys.exit()
 
@@ -478,7 +484,7 @@ def p_additional_arguments(p):
 
 def p_method_invocation(p):
     "method_invocation : primary DOT ID LPAREN arguments RPAREN"
-    p[0] = MethodCall(p[1], p[3], flatten(p[5]), p.lineno)
+    p[0] = MethodCall(p[1], p[3], flatten(p[5]), p.lineno(3))
 
 def p_expr_arith_op(p):
     "expr_arith_op : expr arith_op expr"
@@ -486,7 +492,7 @@ def p_expr_arith_op(p):
     # elif p[2] == "-" : p[0] = p[1] - p[3]
     # elif p[2] == "*" : p[0] = p[1] * p[3]
     # elif p[2] == "/" : p[0] = p[1] / p[3]
-    p[0] = Binary(p[1], p[2], p[3] ,p.lineno)
+    p[0] = Binary(p[1], p[2], p[3], p.lineno(2))
 
 def p_expr_bool_op(p):
     "expr_bool_op : expr bool_op expr"
@@ -498,7 +504,7 @@ def p_expr_bool_op(p):
     # elif p[2] == ">"  : p[0] = p[1] >   p[3]
     # elif p[2] == "<=" : p[0] = p[1] <=  p[3]
     # elif p[2] == ">=" : p[0] = p[1] >=  p[3]
-    p[0] = Binary(p[1], p[2], p[3], p.lineno)
+    p[0] = Binary(p[1], p[2], p[3], p.lineno(2))
 
 def p_expr_unary_op(p):
     """expr_unary_op : PLUS expr %prec UPLUS
@@ -507,7 +513,7 @@ def p_expr_unary_op(p):
     # if   p[1] == "+" : p[0] = +p[2]
     # elif p[1] == "-" : p[0] = -p[2]
     # elif p[1] == "!" : p[0] = not p[2]
-    p[0] = Unary(p[1], p[2], p.lineno)
+    p[0] = Unary(p[1], p[2], p.lineno(1))
 
 def p_arith_op(p):
     """arith_op : PLUS

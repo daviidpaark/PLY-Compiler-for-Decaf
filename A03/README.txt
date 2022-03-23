@@ -20,4 +20,4 @@ decaf_parser.py
 
 decaf_ast.py
 	Outlines the tree strutcture for the AST
-	Each class is recursively called after using the printAST() method in the base AST class
+	Each class print method is recursively called after using the printAST() method in the base AST class

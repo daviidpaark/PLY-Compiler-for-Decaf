@@ -108,7 +108,7 @@ class Method:
             for parameter in self.parameters:
                 params.append(str(parameter.id))
         except:
-            pass
+            params = ""
         print("Method Parameters:", ", ".join(params))
         print("Variable Table: ")
         for variable in self.variables:
@@ -194,11 +194,17 @@ class If:
         self.line = line
 
     def tree(self):
-        return "If( %s,\n%s,\n%s )" % (
-            self.condition.tree(),
-            self.then.tree(),
-            self.elsee.tree(),
-        )
+        if (isinstance(self.elsee,Skip)):
+            return "If( %s,\n%s )" % (
+                self.condition.tree(),
+                self.then.tree()
+            )
+        else:
+            return "If( %s,\n%s,\nElse%s )" % (
+                self.condition.tree(),
+                self.then.tree(),
+                self.elsee.tree()
+            )
 
 
 class While:
@@ -266,6 +272,18 @@ class Block:
         self.statements = statements
         self.line = line
 
+    def tree(self):
+        stmts = []
+        try:
+            for stmt in self.statements:
+                stmts.append(stmt.tree())
+        except:
+            pass
+        if stmts:
+            stmts = ", \n".join(filter(None, stmts))
+        else:
+            stmts = ""
+        return stmts
 
 class Break:
     def __init__(self, line):
