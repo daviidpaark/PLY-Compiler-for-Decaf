@@ -548,7 +548,10 @@ def p_exit_block(p):
     varID = 1
 
 def p_error(p):
-    print("Syntax error in input: %s [%d,%d]" % (repr(p.value), p.lineno, p.lexpos))
+    try:
+        print("Syntax error in input: %s [%d,%d]" % (repr(p.value), p.lineno, p.lexpos))
+    except:
+        print("Syntax error in input")
     import sys
     sys.exit()
 

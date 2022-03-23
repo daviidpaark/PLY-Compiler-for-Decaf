@@ -195,12 +195,12 @@ class If:
 
     def tree(self):
         if (isinstance(self.elsee,Skip)):
-            return "If( %s,\n%s )" % (
+            return "If( (%s),\n(%s) )" % (
                 self.condition.tree(),
                 self.then.tree()
             )
         else:
-            return "If( %s,\n%s,\nElse%s )" % (
+            return "If( (%s),\n(%s),\nElse(%s) )" % (
                 self.condition.tree(),
                 self.then.tree(),
                 self.elsee.tree()

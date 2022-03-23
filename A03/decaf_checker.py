@@ -44,7 +44,7 @@ def main():
     fh = open(fn, "r")
     source = fh.read()
     fh.close()
-    ast = parser.parse(source, lexer=lexer, debug=1)
+    ast = parser.parse(source, lexer=lexer, debug=0)
     # Parsing Successful
     ast.printAST()
 
