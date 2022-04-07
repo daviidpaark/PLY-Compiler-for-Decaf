@@ -369,7 +369,7 @@ def p_opt_expr(p):
     try:
         p[0] = p[1]
     except:
-        p[0] = Skip(p.lineno(1))
+        p[0] = Skip(p.lineno(0))
 
 def p_stmt_expr(p):
     """stmt_expr : assign
@@ -452,7 +452,7 @@ def p_implicit_access(p):
     "implicit_access : ID"    
     variable = currentScope.get(p[1])
     if variable:
-        p[0] = VariableExpr(variable.id, p.lineno(1))
+        p[0] = VariableExpr(variable.id, p.lineno(1), variable)
     elif p[1] in classTable:
         p[0] = p[1]
     else:

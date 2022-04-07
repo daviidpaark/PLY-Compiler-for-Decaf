@@ -2,6 +2,8 @@
 # dappark
 # 109582425
 
+import decaf_typecheck as typeCheck
+
 
 class AST:
     def __init__(self, classes):
@@ -125,6 +127,9 @@ class Method:
             print(", \n".join(filter(None, stmts)))
         print("])")
 
+    def getType(self):
+        return self.type.getType()
+
 
 class Constructor:
     def __init__(self, id, visibility, parameters, variables, body):
@@ -180,10 +185,16 @@ class Variable:
             )
         )
 
+    def getType(self):
+        return self.type.getType()
+
 
 class Type:
     def __init__(self, name):
         self.name = name
+
+    def getType(self):
+        return self.name
 
 
 class If:
@@ -194,18 +205,31 @@ class If:
         self.line = line
 
     def tree(self):
-        if (isinstance(self.elsee,Skip)):
-            return "If( (%s),\n(%s) )" % (
-                self.condition.tree(),
-                self.then.tree()
-            )
+        if isinstance(self.elsee, Skip):
+            return "If( (%s),\n(%s) )" % (self.condition.tree(), self.then.tree())
         else:
             return "If( (%s),\n(%s),\nElse(%s) )" % (
                 self.condition.tree(),
                 self.then.tree(),
-                self.elsee.tree()
+                self.elsee.tree(),
             )
 
+    def getType(self):
+        if self.condition.getType() == "boolean":
+            try:
+                for stmt in self.then.statements:
+                    if stmt.getType() == "error":
+                        return "error"
+            except:
+                if self.then.getType() == "error":
+                        return "error"
+            try:
+                for stmt in self.elsee:
+                    if stmt.getType() == "error":
+                        return "error"
+            except:
+                if self.elsee.getType() == "error":
+                    return "error"
 
 class While:
     def __init__(self, condition, body, line):
@@ -224,6 +248,12 @@ class While:
             self.condition.tree(),
             ",\n".join(filter(None, stmts)),
         )
+
+    def getType(self):
+        if self.condition.getType() == "boolean":
+            for stmt in self.body:
+                if stmt.getType() == "error":
+                    return "error"
 
 
 class For:
@@ -248,6 +278,11 @@ class For:
             ",\n".join(filter(None, stmts)),
         )
 
+    def getType(self):
+        if self.condition.getType() == "boolean":
+            for stmt in self.body:
+                if stmt.getType() == "error":
+                    return "error"
 
 class Return:
     def __init__(self, value, line):
@@ -257,6 +292,9 @@ class Return:
     def tree(self):
         return "Return( %s )" % self.value.tree()
 
+    def getType(self):
+        return self.value.getType()
+
 
 class Expr:
     def __init__(self, expr, line):
@@ -265,6 +303,9 @@ class Expr:
 
     def tree(self):
         return "Expr( %s )" % self.expr.tree()
+
+    def getType(self):
+        return self.expr.getType()
 
 
 class Block:
@@ -284,6 +325,13 @@ class Block:
         else:
             stmts = ""
         return stmts
+
+    def getType(self):
+        for stmt in self.statements:
+            if stmt.getType() == "error":
+                return "error"
+        return "block"
+
 
 class Break:
     def __init__(self, line):
@@ -327,14 +375,30 @@ class Constant:
             type = "String-constant"
         return "Constant(%s(%s))" % (type, str(self.value))
 
+    def getType(self):
+        if self.value in ("true", "false"):
+            return "boolean"
+        elif self.value == "null":
+            return "null"
+        elif isinstance(self.value, int):
+            return "int"
+        elif isinstance(self.value, float):
+            return "float"
+        elif isinstance(self.value, str):
+            return "string"
+
 
 class VariableExpr:
-    def __init__(self, id, line):
+    def __init__(self, id, line, variable):
         self.id = id
         self.line = line
+        self.variable = variable
 
     def tree(self):
         return "Variable(%d)" % self.id
+
+    def getType(self):
+        return self.variable.getType()
 
 
 class Unary:
@@ -345,6 +409,18 @@ class Unary:
 
     def tree(self):
         return "Unary('%s', %s)" % (self.operator, self.operand.tree())
+
+    def getType(self):
+        if self.operator == "-":
+            if self.operand.getType() in ("int", "float"):
+                return self.operand.getType()
+            else:
+                return "error"
+        elif self.operator == "!":
+            if self.operand.getType() == "boolean":
+                return self.operand.getType()
+            else:
+                return "error"
 
 
 class Binary:
@@ -361,6 +437,41 @@ class Binary:
             self.right.tree(),
         )
 
+    def getType(self):
+        if self.operator in ("+", "-", "*", "/"):
+            if (self.left.getType() == self.left.getType()) and self.left.getType() in (
+                "int",
+                "float",
+            ):
+                return self.left.getType()
+            elif self.left.getType() in (
+                "int",
+                "float",
+            ) and self.right.getType() in ("int", "float"):
+                return "float"
+            else:
+                return "error"
+        elif self.operator in ("&&", "||"):
+            if self.left.getType() == "boolean" and self.right.getType() == "boolean":
+                return "boolean"
+            else:
+                return "error"
+        elif self.operator in ("<", "<=", ">", ">="):
+            if self.left.getType() in (
+                "int",
+                "float",
+            ) and self.right.getType() in ("int", "float"):
+                return "boolean"
+            else:
+                return "error"
+        elif self.operator in ("==", "!="):
+            if typeCheck.isSubType(
+                self.left.getType(), self.right.getType()
+            ) or typeCheck.isSubType(self.right.getType(), self.left.getType()):
+                return "boolean"
+            else:
+                return "error"
+
 
 class Assign:
     def __init__(self, lhs, rhs, line):
@@ -369,7 +480,18 @@ class Assign:
         self.line = line
 
     def tree(self):
-        return "Assign(%s, %s)" % (self.lhs.tree(), self.rhs.tree())
+        return "Assign(%s, %s), %s, %s" % (
+            self.lhs.tree(),
+            self.rhs.tree(),
+            self.lhs.getType(),
+            self.rhs.getType(),
+        )
+
+    def getType(self):
+        if typeCheck.isSubType(self.rhs.getType(), self.lhs.getType()):
+            return self.rhs.getType()
+        else:
+            return "error"
 
 
 class Auto:
@@ -386,6 +508,12 @@ class Auto:
             self.placement,
         )
 
+    def getType(self):
+        if self.operand.getType() in ("int", "float"):
+            return self.operand.getType()
+        else:
+            return "error"
+
 
 class FieldAccess:
     def __init__(self, base, field, line):
@@ -401,6 +529,9 @@ class FieldAccess:
         elif isinstance(self.field, str):
             return "Field-access(%s, %s)" % (self.base.tree(), self.field)
         return "Field-access(%s, %s)" % (self.base.tree(), self.field.tree())
+
+    def getType(self):
+        pass
 
 
 class MethodCall:
@@ -430,6 +561,9 @@ class MethodCall:
             args,
         )
 
+    def getType(self):
+        pass
+
 
 class Object:
     def __init__(self, base, arguments, line):
@@ -447,6 +581,9 @@ class Object:
             args = ""
         return "New-object(%s, [%s])" % (self.base, args)
 
+    def getType(self):
+        return self.base
+
 
 class This:
     def __init__(self, line):
@@ -454,6 +591,9 @@ class This:
 
     def tree(self):
         return "This"
+
+    def getType(self):
+        pass
 
 
 class Super:
@@ -463,6 +603,9 @@ class Super:
     def tree(self):
         return "Super"
 
+    def getType(self):
+        pass
+
 
 class Reference:
     def __init__(self, name, line):
@@ -471,6 +614,9 @@ class Reference:
 
     def tree(self):
         return "Class-reference(%s)" % self.name
+
+    def getType(self):
+        pass
 
 
 class Scope:

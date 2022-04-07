@@ -45,10 +45,12 @@ def main():
     source = fh.read()
     fh.close()
     ast = parser.parse(source, lexer=lexer, debug=0)
-    # Parsing Successful
-    ast.printAST()
+    import decaf_typecheck
+
+    if decaf_typecheck.typeCheck(ast):
+        ast.printAST()
 
 
 if __name__ == "__main__":
-    #just_scan()
+    # just_scan()
     main()
