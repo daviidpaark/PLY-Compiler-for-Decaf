@@ -39,5 +39,6 @@ def typeCheckMethod(method):
 def isSubType(lower, upper):
     if lower == upper:
         return True
-    # Implement subtype
-    return True
+    elif lower == "int" and upper == "float":
+        return True
+    return False

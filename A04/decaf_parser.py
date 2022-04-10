@@ -421,7 +421,7 @@ def p_assign(p):
               | auto_expr_post
               | auto_expr_pre"""
     try: 
-        p[0] = Assign(p[1], p[3], p.lineno(1))
+        p[0] = Assign(p[1], p[3], p.lineno(2))
     except:
         p[0] = p[1]
 

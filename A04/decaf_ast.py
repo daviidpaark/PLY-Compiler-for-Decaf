@@ -222,7 +222,7 @@ class If:
                         return "error"
             except:
                 if self.then.getType() == "error":
-                        return "error"
+                    return "error"
             try:
                 for stmt in self.elsee:
                     if stmt.getType() == "error":
@@ -230,6 +230,7 @@ class If:
             except:
                 if self.elsee.getType() == "error":
                     return "error"
+
 
 class While:
     def __init__(self, condition, body, line):
@@ -283,6 +284,7 @@ class For:
             for stmt in self.body:
                 if stmt.getType() == "error":
                     return "error"
+
 
 class Return:
     def __init__(self, value, line):
@@ -439,7 +441,9 @@ class Binary:
 
     def getType(self):
         if self.operator in ("+", "-", "*", "/"):
-            if (self.left.getType() == self.left.getType()) and self.left.getType() in (
+            if (
+                self.left.getType() == self.right.getType()
+            ) and self.left.getType() in (
                 "int",
                 "float",
             ):
@@ -491,6 +495,10 @@ class Assign:
         if typeCheck.isSubType(self.rhs.getType(), self.lhs.getType()):
             return self.rhs.getType()
         else:
+            print(
+                "Invalid assignment from %s to %s (line %d)"
+                % (self.rhs.getType(), self.lhs.getType(), self.line)
+            )
             return "error"
 
 
@@ -524,11 +532,15 @@ class FieldAccess:
     def tree(self):
         if isinstance(self.base, str):
             if isinstance(self.field, str):
-                return "Field-access(%s, %s)" % (self.base, self.field)
-            return "Field-access(%s, %s)" % (self.base, self.field.tree())
+                return "Field-access(%s, %s, %d)" % (self.base, self.field, self.id)
+            return "Field-access(%s, %s, %d)" % (self.base, self.field.tree(), self.id)
         elif isinstance(self.field, str):
-            return "Field-access(%s, %s)" % (self.base.tree(), self.field)
-        return "Field-access(%s, %s)" % (self.base.tree(), self.field.tree())
+            return "Field-access(%s, %s, %d)" % (self.base.tree(), self.field, self.id)
+        return "Field-access(%s, %s, %d)" % (
+            self.base.tree(),
+            self.field.tree(),
+            self.id,
+        )
 
     def getType(self):
         pass
