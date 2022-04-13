@@ -4,8 +4,11 @@
 
 import decaf_ast as AST
 
+global hierarchy
 
 def typeCheck(AST):
+    global hierarchy
+    hierarchy = AST.hierarchy
     for entry in AST.classes:
         if not typeCheckClass(entry):
             return False
@@ -39,6 +42,8 @@ def typeCheckMethod(method):
 def isSubType(lower, upper):
     if lower == upper:
         return True
-    elif lower == "int" and upper == "float":
+    elif lower == "null" and upper not in ("int", "float", "string", "boolean"):
+        return True
+    elif hierarchy[lower].__contains__(upper):
         return True
     return False

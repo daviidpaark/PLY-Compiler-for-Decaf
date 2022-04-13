@@ -20,7 +20,8 @@ precedence = (
     ("right", "NOT"),
 )
 
-classTable = []
+classTable = {}
+classHierarchy = {}
 fieldID = 1
 methodID = 1
 constructorID = 1
@@ -29,8 +30,8 @@ block = -1
 varID = 1
 
 currentScope = Scope(None)
-classTable.append("In")
-classTable.append("Out")
+classTable["In"] = []
+classTable["Out"] = []
 currentScope.addMethod(Method("scan_int", 0, "In", "public", "static", None, Type("int"), None, None))
 currentScope.addMethod(Method("scan_float", 0, "In", "public", "static", None, Type("float"), None, None))
 currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("int")), None, None, None))
@@ -38,11 +39,16 @@ currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i
 currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("boolean")), None, None, None))
 currentScope.addMethod(Method("print", 0, "Out", "public", "static", Variable("i", 0 , "formal", Type("string")), None, None, None))
 
+classHierarchy["int"] = ["float"]
+classHierarchy["float"] = []
+classHierarchy["string"] = []
+classHierarchy["boolean"] = []
+
 def p_program(p):
     """program : class_decl
                | """
     try:
-        p[0] = AST(flatten(p[1]))
+        p[0] = AST(flatten(p[1]), classTable, classHierarchy)
     except:
         pass
         
@@ -55,11 +61,14 @@ def p_class_decl(p):
         if isinstance(decl, Field):
             decl.cclass = p[1]
             fields.append(decl)
+            classTable[p[1]].append(decl)
         if isinstance(decl, Method):
             decl.cclass = p[1]
             methods.append(decl)
         if isinstance(decl, Constructor):
             constructors.append(decl)
+    if (p[2]):
+        classHierarchy[p[1]].append(p[2])
     try:
         p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
     except:
@@ -76,11 +85,14 @@ def p_next_class_decl(p):
             if isinstance(decl, Field):
                 decl.cclass = p[1]
                 fields.append(decl)
+                classTable[p[1]].append(decl)
             if isinstance(decl, Method):
                 decl.cclass = p[1]
                 methods.append(decl)
             if isinstance(decl, Constructor):
                 constructors.append(decl)
+        if (p[2]):
+            classHierarchy[p[1]].append(p[2])
         try:
             p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
         except:
@@ -90,11 +102,12 @@ def p_next_class_decl(p):
 
 def p_classname(p):
     "classname : CLASS ID"
-    if classTable.__contains__(p[2]):
+    if p[2] in classTable.keys():
         print("Duplicate class name: %s" % p[2])
         import sys
         sys.exit()
-    classTable.append(p[2])
+    classTable[p[2]] = []
+    classHierarchy[p[2]] = []
     p[0] = p[2]
 
 def p_superclass(p):
@@ -454,17 +467,17 @@ def p_explicit_field(p):
         id = 1
         type = Type("%s.%s" % (p[1], p[3]))
 
-    if classTable.__contains__(p[1]):
+    if p[1] in classTable.keys():
         p[0] = FieldAccess(Reference(p[1], p.lineno(3)), p[3], p.lineno(3), id, type)
     else:
         p[0] = FieldAccess(p[1], p[3], p.lineno(3), id, type)
 
 def p_implicit_access(p):
-    "implicit_access : ID"    
+    "implicit_access : ID"
     variable = currentScope.get(p[1])
     if variable:
         p[0] = VariableExpr(variable.id, p.lineno(1), variable)
-    elif p[1] in classTable:
+    elif p[1] in classTable.keys():
         p[0] = p[1]
     else:
         print("Error accessing undeclared/implicit variable: %s [%d,%d]" % (p[1], p.lineno(1), p.lexpos(1)))

@@ -4,10 +4,18 @@
 
 import decaf_typecheck as typeCheck
 
+global table
+global hierachy
 
 class AST:
-    def __init__(self, classes):
+    def __init__(self, classes, classTable, classHierarchy):
         self.classes = classes
+        self.table = classTable
+        global table
+        table = classTable
+        self.hierarchy = classHierarchy
+        global hierachy
+        hierachy = classHierarchy
 
     def printAST(self):
         for entry in self.classes:
@@ -545,6 +553,12 @@ class FieldAccess:
         )
 
     def getType(self):
+        if isinstance(self.base, Reference):
+            if self.base.name in table.keys():
+                for field in table[self.base.name]:
+                    if field.name == self.field:
+                        self.id = field.id
+                        self.type = field.type
         return self.type.getType()
 
 
