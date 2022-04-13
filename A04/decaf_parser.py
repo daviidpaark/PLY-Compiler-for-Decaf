@@ -47,56 +47,55 @@ def p_program(p):
         pass
         
 def p_class_decl(p):
-    "class_decl : CLASS ID superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl"
+    "class_decl : classname superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl"
     fields = []
     methods = []
     constructors = []
-    for decl in flatten(p[6]):
+    for decl in flatten(p[5]):
         if isinstance(decl, Field):
-            decl.cclass = p[2]
+            decl.cclass = p[1]
             fields.append(decl)
         if isinstance(decl, Method):
-            decl.cclass = p[2]
+            decl.cclass = p[1]
             methods.append(decl)
         if isinstance(decl, Constructor):
             constructors.append(decl)
     try:
-        p[0] = [Class(p[2], p[3], fields, methods, constructors), p[9]]
+        p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
     except:
-        p[0] = [Class(p[2], p[3], fields, methods, constructors)]
-    if classTable.__contains__(p[2]):
-        print("Duplicate class name: %s" % p[2])
-        import sys
-        sys.exit()
-    classTable.append(p[2])
+        p[0] = [Class(p[1], p[2], fields, methods, constructors)]
 
 def p_next_class_decl(p):
-    """next_class_decl : CLASS ID superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl
+    """next_class_decl : classname superclass LBRACE new_block class_body_decl exit_block RBRACE next_class_decl
                        | """
     try:
         fields = []
         methods = []
         constructors = []
-        for decl in flatten(p[6]):
+        for decl in flatten(p[5]):
             if isinstance(decl, Field):
-                decl.cclass = p[2]
+                decl.cclass = p[1]
                 fields.append(decl)
             if isinstance(decl, Method):
-                decl.cclass = p[2]
+                decl.cclass = p[1]
                 methods.append(decl)
             if isinstance(decl, Constructor):
                 constructors.append(decl)
         try:
-            p[0] = [Class(p[2], p[3], fields, methods, constructors), p[9]]
+            p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
         except:
-            p[0] = [Class(p[2], p[3], fields, methods, constructors)]
-        if classTable.__contains__(p[2]):
-            print("Duplicate class name: %s" % p[2])
-            import sys
-            sys.exit()
-        classTable.append(p[2])
+            p[0] = [Class(p[1], p[2], fields, methods, constructors)]
     except:
         pass
+
+def p_classname(p):
+    "classname : CLASS ID"
+    if classTable.__contains__(p[2]):
+        print("Duplicate class name: %s" % p[2])
+        import sys
+        sys.exit()
+    classTable.append(p[2])
+    p[0] = p[2]
 
 def p_superclass(p):
     """superclass : EXTENDS ID
@@ -182,7 +181,6 @@ def p_constructor_decl(p):
         for stmt in filter(None, (p[6].statements)):
             if isinstance(stmt, Variable):
                 variables.append(stmt)
-                p[6].statements.remove(stmt)
     except:
         pass
     try:
@@ -442,11 +440,24 @@ def p_field_access(p):
     
 def p_explicit_field(p):
     "explicit_field : primary DOT ID"
-    if isinstance(p[1],This) and not currentScope.getField(p[3]):
+    if (isinstance(p[1],This) and not currentScope.getField(p[3])) and (isinstance(p[1],This) and not currentScope.get(p[3])):
         print("Invalid/undeclared field access: %s [%d,%d]" % (p[3], p.lineno(3), p.lexpos(3)))
         import sys
         sys.exit()
-    p[0] = FieldAccess(p[1], p[3], p.lineno(3))
+    if (currentScope.get(p[3])):
+        id = currentScope.get(p[3]).id
+        type = currentScope.get(p[3]).type
+    elif (currentScope.getField(p[3])):
+        id = currentScope.getField(p[3]).id
+        type = currentScope.getField(p[3]).type
+    else:
+        id = 1
+        type = Type("%s.%s" % (p[1], p[3]))
+
+    if classTable.__contains__(p[1]):
+        p[0] = FieldAccess(Reference(p[1], p.lineno(3)), p[3], p.lineno(3), id, type)
+    else:
+        p[0] = FieldAccess(p[1], p[3], p.lineno(3), id, type)
 
 def p_implicit_access(p):
     "implicit_access : ID"    

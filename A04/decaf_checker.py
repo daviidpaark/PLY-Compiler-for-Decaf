@@ -47,8 +47,8 @@ def main():
     ast = parser.parse(source, lexer=lexer, debug=0)
     import decaf_typecheck
 
-    if decaf_typecheck.typeCheck(ast):
-        ast.printAST()
+    #if decaf_typecheck.typeCheck(ast):
+    ast.printAST()
 
 
 if __name__ == "__main__":

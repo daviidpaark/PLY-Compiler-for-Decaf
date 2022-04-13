@@ -524,10 +524,12 @@ class Auto:
 
 
 class FieldAccess:
-    def __init__(self, base, field, line):
+    def __init__(self, base, field, line, id, type):
         self.base = base
         self.field = field
         self.line = line
+        self.id = id
+        self.type = type
 
     def tree(self):
         if isinstance(self.base, str):
@@ -543,7 +545,7 @@ class FieldAccess:
         )
 
     def getType(self):
-        pass
+        return self.type.getType()
 
 
 class MethodCall:
