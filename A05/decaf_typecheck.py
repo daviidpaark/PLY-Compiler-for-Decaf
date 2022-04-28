@@ -40,10 +40,13 @@ def typeCheckMethod(method):
 
 
 def isSubType(lower, upper):
-    if lower == upper:
-        return True
-    elif lower == "null" and upper not in ("int", "float", "string", "boolean"):
-        return True
-    elif hierarchy[lower].__contains__(upper):
-        return True
-    return False
+    try:
+        if lower == upper:
+            return True
+        elif lower == "null" and upper not in ("int", "float", "string", "boolean"):
+            return True
+        elif hierarchy[lower].__contains__(upper):
+            return True
+        return False
+    except:
+        return False
