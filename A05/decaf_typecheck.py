@@ -2,9 +2,8 @@
 # dappark
 # 109582425
 
-import decaf_ast as AST
-
 global hierarchy
+
 
 def typeCheck(AST):
     global hierarchy

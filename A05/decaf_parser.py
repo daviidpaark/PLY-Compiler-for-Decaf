@@ -61,14 +61,11 @@ def p_class_decl(p):
         if isinstance(decl, Field):
             decl.cclass = p[1]
             fields.append(decl)
-            classTable[p[1]].append(decl)
         if isinstance(decl, Method):
             decl.cclass = p[1]
             methods.append(decl)
         if isinstance(decl, Constructor):
             constructors.append(decl)
-    if (p[2]):
-        classHierarchy[p[1]].append(p[2])
     try:
         p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
     except:
@@ -85,14 +82,11 @@ def p_next_class_decl(p):
             if isinstance(decl, Field):
                 decl.cclass = p[1]
                 fields.append(decl)
-                classTable[p[1]].append(decl)
             if isinstance(decl, Method):
                 decl.cclass = p[1]
                 methods.append(decl)
             if isinstance(decl, Constructor):
                 constructors.append(decl)
-        if (p[2]):
-            classHierarchy[p[1]].append(p[2])
         try:
             p[0] = [Class(p[1], p[2], fields, methods, constructors), p[8]]
         except:
@@ -108,13 +102,14 @@ def p_classname(p):
         sys.exit()
     classTable[p[2]] = []
     classHierarchy[p[2]] = []
+    currentScope.className = p[2]
     p[0] = p[2]
 
 def p_superclass(p):
     """superclass : EXTENDS ID
                   | """
     try:
-        p[0] = p[2]
+        classHierarchy[currentScope.getClass()].append(p[2])
     except:
         pass
 
@@ -149,6 +144,7 @@ def p_field_decl(p):
     p[0] = fields
     for field in fields:
         currentScope.addField(field)
+        classTable[currentScope.getClass()].append(field)
 
 def p_method_decl(p):
     """method_decl : modifier type ID LPAREN formal_param RPAREN block
@@ -453,6 +449,11 @@ def p_field_access(p):
     
 def p_explicit_field(p):
     "explicit_field : primary DOT ID"
+    for value in classHierarchy[currentScope.getClass()]:
+        for field in classTable[value]:
+            if field.name == p[3]:
+                p[0] = FieldAccess(p[1], p[3], p.lineno(3), field.id, field.type)
+                return
     if (isinstance(p[1],This) and not currentScope.getField(p[3])) and (isinstance(p[1],This) and not currentScope.get(p[3])):
         print("Invalid/undeclared field access: %s [%d,%d]" % (p[3], p.lineno(3), p.lexpos(3)))
         import sys

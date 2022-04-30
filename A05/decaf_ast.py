@@ -6,6 +6,11 @@ import decaf_typecheck as typeCheck
 
 global table
 global hierachy
+global args
+global temp
+global registers
+global localVars
+
 
 class AST:
     def __init__(self, classes, classTable, classHierarchy):
@@ -137,6 +142,14 @@ class Method:
 
     def getType(self):
         return self.type.getType()
+
+    def gen(self):
+        global temp
+        temp = 0
+        global localVars
+        localVars = {}
+        global registers
+        registers = {}
 
 
 class Constructor:
@@ -317,6 +330,9 @@ class Expr:
     def getType(self):
         return self.expr.getType()
 
+    def gen(self):
+        return self.expr.gen()
+
 
 class Block:
     def __init__(self, statements, line):
@@ -397,6 +413,34 @@ class Constant:
         elif isinstance(self.value, str):
             return "string"
 
+    def gen(self, lhs):
+        global temp
+        global localVars
+        if self.value == "true":
+            code = "move_immed_i t%d, 1" % temp
+            registers[lhs.variable.name] = temp
+            temp += 1
+            localVars[lhs.variable.name] = 1
+            return code
+        elif self.value == "false":
+            code = "move_immed_i t%d, 0" % temp
+            registers[lhs.variable.name] = temp
+            temp += 1
+            localVars[lhs.variable.name] = 0
+            return code
+        elif isinstance(self.value, int):
+            code = "move_immed_i t%d, %d" % (temp, self.value)
+            registers[lhs.variable.name] = temp
+            temp += 1
+            localVars[lhs.variable.name] = self.value
+            return code
+        elif isinstance(self.value, float):
+            code = "move_immed_f t%d, %f" % (temp, self.value)
+            registers[lhs.variable.name] = temp
+            temp += 1
+            localVars[lhs.variable.name] = self.value
+            return code
+
 
 class VariableExpr:
     def __init__(self, id, line, variable):
@@ -410,6 +454,17 @@ class VariableExpr:
     def getType(self):
         return self.variable.getType()
 
+    def getValue(self):
+        return localVars[self.variable.name]
+
+    def gen(self, lhs):
+        global temp
+        code = "move t%d, t%d" % (temp, registers[self.variable.name])
+        registers[lhs.variable.name] = temp
+        temp += 1
+        localVars[lhs.variable.name] = localVars[self.variable.name]
+        return code
+
 
 class Unary:
     def __init__(self, operator, operand, line):
@@ -421,7 +476,7 @@ class Unary:
         return "Unary('%s', %s)" % (self.operator, self.operand.tree())
 
     def getType(self):
-        if self.operator == "-":
+        if self.operator == "-" or self.operator == "+":
             if self.operand.getType() in ("int", "float"):
                 return self.operand.getType()
             else:
@@ -431,6 +486,62 @@ class Unary:
                 return self.operand.getType()
             else:
                 return "error"
+
+    def gen(self, lhs):
+        global temp
+        if isinstance(self.operand, VariableExpr):
+            if self.operator == "+":
+                if isinstance(self.operand.getValue(), int):
+                    code = "move_immed_i t%d, %d" % (temp, self.operand.getValue())
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = self.operand.getValue()
+                    return code
+                else:
+                    code = "move_immed_f t%d, %f" % (temp, self.operand.getValue())
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = self.operand.getValue()
+                    return code
+            elif self.operator == "-":
+                if isinstance(self.operand.getValue(), int):
+                    code = "move_immed_i t%d, %d" % (temp, self.operand.getValue() * -1)
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = self.operand.getValue()
+                    return code
+                else:
+                    code = "move_immed_f t%d, %f" % (temp, self.operand.getValue() * -1)
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = self.operand.getValue()
+                    return code
+            elif self.operator == "!":
+                if self.operand.getValue() == 0:
+                    code = "move_immed_i t%d, 1" % temp
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = 1
+                    return code
+                else:
+                    code = "move_immed_i t%d, 0" % temp
+                    registers[lhs.variable.name] = temp
+                    temp += 1
+                    localVars[lhs.variable.name] = 0
+                    return code
+        elif isinstance(self.operand, Constant):
+            if self.operator == "+":
+                code = "move_immed_i t%d, %d" % (temp, self.operand.value)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = self.operand.value
+                return code
+            elif self.operator == "-":
+                code = "move_immed_i t%d, %d" % (temp, self.operand.value * -1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = self.operand.value
+                return code
 
 
 class Binary:
@@ -484,6 +595,113 @@ class Binary:
             else:
                 return "error"
 
+    def gen(self, lhs):
+        global temp
+        code = self.left.gen(lhs) + "\n\t" + self.right.gen(lhs)
+        if self.operator == "+":
+            if lhs.getType() == "int":
+                code += "\n\tiadd t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "iadd"
+                return code
+            elif lhs.getType() == "float":
+                code += "\n\tfadd t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fadd"
+                return code
+        elif self.operator == "-":
+            if lhs.getType() == "int":
+                code += "\n\tisub t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "isub"
+                return code
+            elif lhs.getType() == "float":
+                code += "\n\tfsub t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fsub"
+                return code
+        elif self.operator == "*":
+            if lhs.getType() == "int":
+                code += "\n\timul t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "imul"
+                return code
+            elif lhs.getType() == "float":
+                code += "\n\tfmul t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fmul"
+                return code
+        elif self.operator == "/":
+            if lhs.getType() == "int":
+                code += "\n\tidiv t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "idiv"
+                return code
+            elif lhs.getType() == "float":
+                code += "\n\tfdiv t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fdiv"
+                return code
+        elif self.operator == "<":
+            if self.left.getType() == "float" or self.right.getType() == "float":
+                code += "\n\tflt t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "flt"
+                return code
+            else:
+                code += "\n\tilt t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "ilt"
+                return code
+        elif self.operator == "<=":
+            if self.left.getType() == "float" or self.right.getType() == "float":
+                code += "\n\tfleq t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fleq"
+                return code
+            else:
+                code += "\n\tileq t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "ileq"
+                return code
+        elif self.operator == ">":
+            if self.left.getType() == "float" or self.right.getType() == "float":
+                code += "\n\tfgt t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fgt"
+                return code
+            else:
+                code += "\n\tigt t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "igt"
+                return code
+        elif self.operator == ">=":
+            if self.left.getType() == "float" or self.right.getType() == "float":
+                code += "\n\tfgeq t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "fgeq"
+                return code
+            else:
+                code += "\n\tigeq t%d, t%d, t%d" % (temp, temp - 2, temp - 1)
+                registers[lhs.variable.name] = temp
+                temp += 1
+                localVars[lhs.variable.name] = "igeq"
+                return code
 
 class Assign:
     def __init__(self, lhs, rhs, line):
@@ -501,13 +719,16 @@ class Assign:
 
     def getType(self):
         if typeCheck.isSubType(self.rhs.getType(), self.lhs.getType()):
-            return self.rhs.getType()
+            return self.lhs.getType()
         else:
             print(
                 "Invalid assignment from %s to %s (line %d)"
                 % (self.rhs.getType(), self.lhs.getType(), self.line)
             )
             return "error"
+
+    def gen(self):
+        return self.rhs.gen(self.lhs)
 
 
 class Auto:
@@ -694,5 +915,8 @@ class Scope:
             return self.parent.getMethod(name)
         return None
 
-    def setClass(self, className):
-        self.className = className
+    def getClass(self):
+        try:
+            return self.className
+        except:
+            return self.parent.getClass()
