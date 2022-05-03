@@ -308,9 +308,28 @@ class While:
 
     def getType(self):
         if self.condition.getType() == "boolean":
-            for stmt in self.body:
+            for stmt in self.body.statements:
                 if stmt.getType() == "error":
                     return "error"
+
+    def gen(self):
+        global branch
+        code = self.condition.gen()
+        label = "L%d" % branch
+        branch += 1
+        code += "\n\tbz t%s %s" % (temp - 1, label)
+        start = "L%d" % branch
+        branch += 1
+        code += "\n%s:" % start
+        try:
+            for stmt in self.body.statements:
+                code += "\n\t" + stmt.gen()
+        except:
+            code += "\n\t" + self.body.gen()
+        code += "\n\t" + self.condition.gen()
+        code += "\n\tbnz t%s %s" % (temp - 1, start)
+        code += "\n%s:" % label
+        return code
 
 
 class For:
@@ -337,9 +356,30 @@ class For:
 
     def getType(self):
         if self.condition.getType() == "boolean":
-            for stmt in self.body:
+            for stmt in self.body.statements:
                 if stmt.getType() == "error":
                     return "error"
+
+    def gen(self):
+        global branch
+        code = self.initializer.gen()
+        code += "\n\t" + self.condition.gen()
+        label = "L%d" % branch
+        branch += 1
+        code += "\n\tbz t%s %s" % (temp - 1, label)
+        start = "L%d" % branch
+        branch += 1
+        code += "\n%s:" % start
+        try:
+            for stmt in self.body.statements:
+                code += "\n\t" + stmt.gen()
+        except:
+            code += "\n\t" + self.body.gen()
+        code += "\n\t" + self.update.gen()
+        code += "\n\t" + self.condition.gen()
+        code += "\n\tbnz t%s %s" % (temp - 1, start)
+        code += "\n%s:" % label
+        return code
 
 
 class Return:
@@ -419,6 +459,9 @@ class Skip:
 
     def getType(self):
         return "Skip"
+
+    def gen(self):
+        return ""
 
 
 class Constant:
