@@ -6,6 +6,8 @@ import decaf_ast as AST
 import decaf_absmc as ABSMC
 
 global f
+global static
+static = 0
 
 
 def codeGen(AST, file):
@@ -22,7 +24,13 @@ def genClass(entry):
     for constructor in entry.constructors:
         genConstructor(constructor)
     for method in entry.methods:
-        genMethod(method)
+        if method.name == "main":
+            genMethod(method)
+            ABSMC.writeFile("")
+    for method in entry.methods:
+        if method.name != "main":
+            genMethod(method)
+            ABSMC.writeFile("")
 
 
 def genField(field):
@@ -34,7 +42,8 @@ def genConstructor(constructor):
 
 
 def genMethod(method):
-    ABSMC.newLabel(method.name)
+    label = "M_%s_%d" % (method.name, method.id)
+    ABSMC.newLabel(label)
     method.gen()
     for stmt in method.body.statements:
         ABSMC.writeFile(stmt.gen())

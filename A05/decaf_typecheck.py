@@ -32,6 +32,8 @@ def typeCheckConstructor(constructor):
 
 
 def typeCheckMethod(method):
+    if method.getType() == "error":
+        return False
     for stmt in method.body.statements:
         if stmt.getType() == "error":
             return False

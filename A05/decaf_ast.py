@@ -2,11 +2,12 @@
 # dappark
 # 109582425
 
-from os import execv
 import decaf_typecheck as typeCheck
 
 global table
 global hierachy
+global methods
+methods = {}
 global args
 global temp
 global registers
@@ -143,6 +144,8 @@ class Method:
         print("])")
 
     def getType(self):
+        global methods
+        methods[self.name] = self
         return self.type.getType()
 
     def gen(self):
@@ -150,6 +153,15 @@ class Method:
         temp = 0
         global registers
         registers = {}
+        global args
+        args = {}
+        try:
+            i = 0
+            for param in self.parameters:
+                args[param.name] = i
+                i += 1
+        except:
+            pass
 
 
 class Constructor:
@@ -393,6 +405,12 @@ class Return:
     def getType(self):
         return self.value.getType()
 
+    def gen(self):
+        code = self.value.gen()
+        code += "\n\tmove a0, t%d" % (temp - 1)
+        code += "\n\tret"
+        return code
+
 
 class Expr:
     def __init__(self, expr, line):
@@ -582,7 +600,10 @@ class VariableExpr:
 
     def gen(self):
         global temp
-        code = "move t%d, t%d" % (temp, registers[self.variable.name])
+        try:
+            code = "move t%d, t%d" % (temp, registers[self.variable.name])
+        except:
+            code = "move t%d, a%d" % (temp, args[self.variable.name])
         temp += 1
         return code
 
@@ -1048,30 +1069,6 @@ class Auto:
             )
         return code
 
-    def eval(self):
-        global temp
-        if self.placement == "pre":
-            code = "move_immed_i t%d, 1" % temp
-            code += "\n\tiadd t%d, t%d, t%d" % (
-                registers[self.operand.variable.name],
-                registers[self.operand.variable.name],
-                temp,
-            )
-            code += "\n\tmove t%d, t%d" % (temp, registers[self.operand.variable.name])
-            registers[lhs.variable.name] = temp
-            temp += 1
-        else:
-            code = "move t%d, t%d" % (temp, registers[self.operand.variable.name])
-            registers[lhs.variable.name] = temp
-            temp += 1
-            code += "\n\tmove_immed_i t%d, 1" % temp
-            code += "\n\tiadd t%d, t%d, t%d" % (
-                registers[self.operand.variable.name],
-                registers[self.operand.variable.name],
-                temp,
-            )
-        return code
-
 
 class FieldAccess:
     def __init__(self, base, field, line, id, type):
@@ -1103,6 +1100,12 @@ class FieldAccess:
                         self.type = field.type
         return self.type.getType()
 
+    def genAssign(self, lhs):
+        pass
+
+    def gen(self):
+        pass
+
 
 class MethodCall:
     def __init__(self, base, method, arguments, line):
@@ -1132,7 +1135,69 @@ class MethodCall:
         )
 
     def getType(self):
-        pass
+        return methods[self.method].getType()
+
+    def genAssign(self, lhs):
+        method = methods[self.method]
+        i = 0
+        while i < temp:
+            try:
+                code += "\n\tsave t%d" % i
+            except:
+                code = "save t%d" % i
+            i += 1
+        i = 0
+        for arg in args:
+            try:
+                code += "\n\tsave a%d" % i
+            except:
+                code += "save a%d" % i
+            i += 1
+        try:
+            code += "\n\tcall M_%s_%d" % (method.name, method.id)
+        except:
+            code = "call M_%s_%d" % (method.name, method.id)
+        i = 0
+        while i < temp:
+            code += "\n\trestore t%d" % i
+            i += 1
+        i = 0
+        for arg in args:
+            code += "\n\trestore a%d" % i
+            i += 1
+        if method.getType() != "void":
+            code += "\n\tmove t%d, a0" % temp
+        return code
+
+    def gen(self):
+        method = methods[self.method]
+        i = 0
+        while i < temp:
+            try:
+                code += "\n\tsave t%d" % i
+            except:
+                code = "save t%d" % i
+            i += 1
+        i = 0
+        for arg in args:
+            try:
+                code += "\n\tsave a%d" % i
+            except:
+                code += "save a%d" % i
+            i += 1
+        try:
+            code += "\n\tcall M_%s_%d" % (method.name, method.id)
+        except:
+            code = "call M_%s_%d" % (method.name, method.id)
+        i = 0
+        while i < temp:
+            code += "\n\trestore t%d" % i
+            i += 1
+        i = 0
+        for arg in args:
+            code += "\n\trestore a%d" % i
+            i += 1
+        return code
 
 
 class Object:

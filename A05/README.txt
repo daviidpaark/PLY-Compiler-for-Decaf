@@ -2,11 +2,11 @@
 # dappark
 # 109582425
 
-decaf_checker.py
+decaf_compiler.py
     Takes a file as input from the command-line and calls decaf_lexer and decaf_parser as the lexer and parser to create AST
 	defined by decaf_ast.
 	AST is type-checked by class methods and decaf_typecheck
-    Outputs AST if syntatically correct and type-checking succeeds
+    Outputs LLIR .ami file with corresponding DECAF file prefix
 
 decaf_lexer.py
 	Tokenizes the input according to the Decaf Language Reference Manual
@@ -23,7 +23,13 @@ decaf_parser.py
 decaf_ast.py
 	Outlines the tree strutcture for the AST
 	Each class print method is recursively called after using the printAST() method in the base AST class
+	gen and genAssign methods to recursively generate LLIR code
 
 decaf_typecheck.py
 	Contains helper functions to traverse tree and type-check Decaf programs
 
+decaf_absmc.py
+	Module for outputting .ami file
+
+decaf_codegen.py
+	Module for traversing AST tree and outputting to decaf_absmc.py
